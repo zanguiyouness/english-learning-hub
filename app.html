@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="English Hub">
+    <meta name="theme-color" content="#0066CC">
+    <title>English Learning Hub</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; }
+        
+        body { display: flex; flex-direction: column; overflow: hidden; }
+        
+        .header { background: linear-gradient(135deg, #0066CC 0%, #0052A3 100%); color: white; padding: 16px; padding-top: max(16px, env(safe-area-inset-top)); text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .header p { font-size: 12px; opacity: 0.9; }
+        
+        .tabs { display: flex; gap: 0; background: white; border-bottom: 1px solid #e0e0e0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .tab { flex: 1; min-width: 70px; padding: 12px 8px; text-align: center; font-size: 12px; cursor: pointer; border: none; background: white; color: #666; transition: all 0.3s; white-space: nowrap; }
+        .tab.active { color: #0066CC; border-bottom: 3px solid #0066CC; }
+        .tab:hover { background: #f5f5f5; }
+        
+        .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .card h3 { font-size: 16px; font-weight: 600; color: #1c1c1e; margin-bottom: 12px; }
+        
+        .exercise { background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+        .phrase { font-size: 18px; font-weight: 600; color: #0066CC; margin-bottom: 4px; }
+        .translation { font-size: 13px; color: #999; margin-bottom: 10px; }
+        
+        .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+        button { padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; color: #0066CC; font-weight: 500; transition: all 0.2s; }
+        button:active { transform: scale(0.98); background: #f5f5f5; }
+        button.primary { background: #0066CC; color: white; border-color: #0066CC; }
+        button.primary:active { background: #0052A3; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .feedback { padding: 10px; background: #e8f5e9; color: #2e7d32; border-radius: 6px; font-size: 12px; margin-top: 8px; display: none; }
+        .feedback.show { display: block; }
+        .feedback.error { background: #ffebee; color: #c62828; }
+        .feedback.success { background: #e8f5e9; color: #2e7d32; }
+        .feedback.info { background: #e3f2fd; color: #1565c0; }
+        
+        textarea, input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 14px; margin-bottom: 8px; }
+        
+        .stat-card { background: #f5f5f5; padding: 12px; border-radius: 8px; text-align: center; flex: 1; min-width: 70px; }
+        .stat-num { font-size: 22px; font-weight: 700; color: #0066CC; }
+        .stat-label { font-size: 11px; color: #999; margin-top: 4px; }
+        
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+        
+        .progress-label { font-size: 12px; color: #666; margin-bottom: 6px; font-weight: 500; }
+        .progress-bar { width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+        .progress-fill { height: 100%; background: #0066CC; border-radius: 3px; }
+        
+        .vocab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .vocab-item { background: #f5f5f5; padding: 10px; border-radius: 6px; font-size: 13px; }
+        .vocab-en { font-weight: 600; color: #0066CC; }
+        .vocab-fr { color: #999; font-size: 11px; margin-top: 4px; }
+        
+        .loading { text-align: center; color: #0066CC; font-size: 12px; padding: 8px; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #0066CC; border-top: 2px solid transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .ai-feedback { background: #f3e5f5; border-left: 4px solid #9c27b0; padding: 10px; border-radius: 4px; margin-top: 8px; font-size: 12px; }
+        .ai-feedback .title { font-weight: 600; color: #6a1b9a; margin-bottom: 4px; }
+        .ai-feedback .content { color: #5e35b1; line-height: 1.4; }
+        
+        @supports (padding: max(0px)) {
+            body { padding-bottom: env(safe-area-inset-bottom); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>English Learning Hub</h1>
+        <p>Master English A1–C2 with AI</p>
+    </div>
+    
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('speaking')">Speaking</button>
+        <button class="tab" onclick="switchTab('pronunciation')">Pronunciation</button>
+        <button class="tab" onclick="switchTab('writing')">Writing</button>
+        <button class="tab" onclick="switchTab('vocabulary')">Vocabulary</button>
+        <button class="tab" onclick="switchTab('listening')">Listening</button>
+        <button class="tab" onclick="switchTab('chat')">Chat AI</button>
+        <button class="tab" onclick="switchTab('progress')">Progress</button>
+    </div>
+    
+    <div class="content">
+        <!-- SPEAKING -->
+        <div id="speaking" class="tab-pane active">
+            <div class="card">
+                <h3>Daily Speaking Practice</h3>
+                
+                <div class="exercise">
+                    <div class="phrase">Hi, how are you?</div>
+                    <div class="translation">Bonjour, comment allez-vous ?</div>
+                    <div class="controls">
+                        <button class="primary" onclick="playAudio('Hi, how are you?')">▶ Listen</button>
+                        <button onclick="showFeedback('s1')">✓ Check</button>
+                    </div>
+                    <div class="feedback" id="s1">Good! Your pronunciation is clear.</div>
+                </div>
+                
+                <div class="exercise">
+                    <div class="phrase">My name is...</div>
+                    <div class="translation">Je m'appelle...</div>
+                    <div class="controls">
+                        <button class="primary" onclick="playAudio('My name is')">▶ Listen</button>
+                        <button onclick="showFeedback('s2')">✓ Check</button>
+                    </div>
+                    <div class="feedback" id="s2">Nice! Work on the ending sounds.</div>
+                </div>
+                
+                <div class="exercise">
+                    <div class="phrase">What is your name?</div>
+                    <div class="translation">Quel est votre nom ?</div>
+                    <div class="controls">
+                        <button class="primary" onclick="playAudio('What is your name?')">▶ Listen</button>
+                        <button onclick="showFeedback('s3')">✓ Check</button>
+                    </div>
+                    <div class="feedback" id="s3">Great! Remember the rising intonation at the end.</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PRONUNCIATION -->
+        <div id="pronunciation" class="tab-pane">
+            <div class="card">
+                <h3>Pronunciation Trainer</h3>
+                
+                <div class="exercise">
+                    <div class="phrase">/θ/ TH Sound</div>
+                    <div class="translation">Examples: think, three, thank</div>
+                    <div class="controls">
+                        <button class="primary" onclick="playAudio('think')">▶ think</button>
+                        <button class="primary" onclick="playAudio('three')">▶ three</button>
+                        <button class="primary" onclick="playAudio('thank')">▶ thank</button>
+                    </div>
+                </div>
+                
+                <div class="exercise">
+                    <div class="phrase">/ŋ/ NG Sound</div>
+                    <div class="translation">Examples: sing, ring, bring</div>
+                    <div class="controls">
+                        <button class="primary" onclick="playAudio('sing')">▶ sing</button>
+                        <button class="primary" onclick="playAudio('ring')">▶ ring</button>
+                        <button class="primary" onclick="playAudio('bring')">▶ bring</button>
+                    </div>
+                </div>
+                
+                <div class="exercise">
+                    <div class="phrase">/æ/ A Sound</div>
+                    <div class="translation">Examples: cat, bad, hand</div>
+                    <div class="controls">
+                        <button class="primary" onclick="playAudio('cat')">▶ cat</button>
+                        <button class="primary" onclick="playAudio('bad')">▶ bad</button>
+                        <button class="primary" onclick="playAudio('hand')">▶ hand</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- WRITING WITH AI -->
+        <div id="writing" class="tab-pane">
+            <div class="card">
+                <h3>Writing & Grammar (AI Powered)</h3>
+                
+                <div class="exercise">
+                    <div class="phrase">Complete the sentence:</div>
+                    <div class="translation">"I _____ (be) a student."</div>
+                    <input type="text" id="w1" placeholder="Your answer...">
+                    <div class="controls">
+                        <button class="primary" onclick="checkWithAI('w1', 'am')">Check with AI</button>
+                    </div>
+                    <div class="feedback" id="fw1"></div>
+                </div>
+                
+                <div class="exercise">
+                    <div class="phrase">Correct the sentence:</div>
+                    <div class="translation">"She go to the park every day."</div>
+                    <input type="text" id="w2" placeholder="Your corrected answer...">
+                    <div class="controls">
+                        <button class="primary" onclick="checkWithAI('w2', 'she goes to the park')">Check with AI</button>
+                    </div>
+                    <div class="feedback" id="fw2"></div>
+                </div>
+                
+                <div class="exercise">
+                    <div class="phrase">Free writing:</div>
+                    <div class="translation">Write a sentence about your day in English</div>
+                    <textarea id="w3" placeholder="Write something..."></textarea>
+                    <div class="controls">
+                        <button class="primary" onclick="analyzeWithAI('w3')">Analyze with AI</button>
+                    </div>
+                    <div class="feedback" id="fw3"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- VOCABULARY -->
+        <div id="vocabulary" class="tab-pane">
+            <div class="card">
+                <h3>Vocabulary Builder</h3>
+                
+                <div class="exercise">
+                    <div class="phrase">Colors</div>
+                    <div class="vocab-grid">
+                        <div class="vocab-item"><div class="vocab-en">Red</div><div class="vocab-fr">Rouge</div></div>
+                        <div class="vocab-item"><div class="vocab-en">Blue</div><div class="vocab-fr">Bleu</div></div>
+                        <div class="vocab-item"><div class="vocab-en">Green</div><div class="vocab-fr">Vert</div></div>
+                        <div class="vocab-item"><div class="vocab-en">Yellow</div><div class="vocab-fr">Jaune</div></div>
+                    </div>
+                </div>
+                
+                <div class="exercise">
+                    <div class="phrase">Family Members</div>
+                    <div class="vocab-grid">
+                        <div class="vocab-item"><div class="vocab-en">Mother</div><div class="vocab-fr">Mère</div></div>
+                        <div class="vocab-item"><div class="vocab-en">Father</div><div class="vocab-fr">Père</div></div>
+                        <div class="vocab-item"><div class="vocab-en">Sister</div><div class="vocab-fr">Sœur</div></div>
+                        <div class="vocab-item"><div class="vocab-en">Brother</div><div class="vocab-fr">Frère</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- LISTENING -->
+        <div id="listening" class="tab-pane">
+            <div class="card">
+                <h3>Listening Comprehension</h3>
+                
+                <div class="exercise">
+                    <div class="phrase">Where do you live?</div>
+                    <div class="translation">Où habitez-vous ?</div>
+                    <div class="controls">
+                        <button class="primary" onclick="playAudio('I live in Switzerland')">▶ Listen</button>
+                    </div>
+                    <input type="text" id="l1" placeholder="Your answer...">
+                    <div class="controls" style="margin-top: 8px;">
+                        <button class="primary" onclick="checkListening('l1', 'switzerland')">Check</button>
+                    </div>
+                    <div class="feedback" id="fl1"></div>
+                </div>
+                
+                <div class="exercise">
+                    <div class="phrase">What's the weather like?</div>
+                    <div class="translation">Quel temps fait-il ?</div>
+                    <div class="controls">
+                        <button class="primary" onclick="playAudio('The weather is sunny')">▶ Listen</button>
+                    </div>
+                    <input type="text" id="l2" placeholder="Your answer...">
+                    <div class="controls" style="margin-top: 8px;">
+                        <button class="primary" onclick="checkListening('l2', 'sunny')">Check</button>
+                    </div>
+                    <div class="feedback" id="fl2"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CHAT AI -->
+        <div id="chat" class="tab-pane">
+            <div class="card">
+                <h3>English Conversation (AI)</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 12px;">Chat in English with AI. Get feedback on grammar and vocabulary.</p>
+                
+                <textarea id="chatInput" placeholder="Type your message in English..." style="margin-bottom: 8px;"></textarea>
+                <div class="controls">
+                    <button class="primary" id="chatBtn" onclick="sendChat()">Send</button>
+                </div>
+                
+                <div id="chatOutput" style="margin-top: 12px; padding: 12px; background: #f5f5f5; border-radius: 8px; min-height: 100px; max-height: 300px; overflow-y: auto; display: none;">
+                    <div id="chatMessages"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PROGRESS -->
+        <div id="progress" class="tab-pane">
+            <div class="card">
+                <h3>Your Progress</h3>
+                
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-num">12</div>
+                        <div class="stat-label">Days Streak</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num">156</div>
+                        <div class="stat-label">Words Learned</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num">84%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num">A1+</div>
+                        <div class="stat-label">Level</div>
+                    </div>
+                </div>
+                
+                <div style="padding: 12px 0;">
+                    <div class="progress-label">Speaking Skills</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: 72%;"></div></div>
+                    
+                    <div class="progress-label">Pronunciation</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: 65%;"></div></div>
+                    
+                    <div class="progress-label">Writing & Grammar</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: 78%;"></div></div>
+                    
+                    <div class="progress-label">Listening</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: 58%;"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration
+        const API_URL = 'https://YOUR_VERCEL_URL/api/mistral'; // À remplacer après déploiement
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function playAudio(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
+        }
+        
+        function showFeedback(id) {
+            const el = document.getElementById(id);
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+        
+        async function checkWithAI(inputId, expected) {
+            const input = document.getElementById(inputId);
+            const feedback = document.getElementById('f' + inputId);
+            const userAnswer = input.value.trim();
+            
+            if (!userAnswer) {
+                feedback.textContent = 'Please write something first!';
+                feedback.classList.add('error', 'show');
+                return;
+            }
+            
+            feedback.innerHTML = '<div class="loading"><div class="spinner"></div> Analyzing...</div>';
+            feedback.classList.add('show');
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'correct',
+                        userAnswer,
+                        expected
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    feedback.innerHTML = `
+                        <div class="ai-feedback">
+                            <div class="title">AI Feedback</div>
+                            <div class="content">${data.feedback}</div>
+                        </div>
+                    `;
+                    feedback.classList.remove('error');
+                    feedback.classList.add('info');
+                } else {
+                    feedback.textContent = 'Error: ' + data.error;
+                    feedback.classList.add('error');
+                }
+            } catch (err) {
+                feedback.textContent = 'Connection error. Check your API setup.';
+                feedback.classList.add('error');
+            }
+        }
+        
+        async function analyzeWithAI(inputId) {
+            const textarea = document.getElementById(inputId);
+            const feedback = document.getElementById('f' + inputId);
+            const text = textarea.value.trim();
+            
+            if (!text) {
+                feedback.textContent = 'Please write something!';
+                feedback.classList.add('error', 'show');
+                return;
+            }
+            
+            feedback.innerHTML = '<div class="loading"><div class="spinner"></div> Analyzing your writing...</div>';
+            feedback.classList.add('show');
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'analyze',
+                        text
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    feedback.innerHTML = `
+                        <div class="ai-feedback">
+                            <div class="title">Writing Analysis</div>
+                            <div class="content">${data.analysis}</div>
+                        </div>
+                    `;
+                    feedback.classList.remove('error');
+                    feedback.classList.add('info');
+                } else {
+                    feedback.textContent = 'Error: ' + data.error;
+                    feedback.classList.add('error');
+                }
+            } catch (err) {
+                feedback.textContent = 'Connection error.';
+                feedback.classList.add('error');
+            }
+        }
+        
+        async function sendChat() {
+            const input = document.getElementById('chatInput');
+            const output = document.getElementById('chatOutput');
+            const messages = document.getElementById('chatMessages');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Show user message
+            const userMsg = document.createElement('div');
+            userMsg.style.cssText = 'margin-bottom: 8px; padding: 8px; background: #0066CC; color: white; border-radius: 6px; text-align: right;';
+            userMsg.textContent = message;
+            messages.appendChild(userMsg);
+            output.style.display = 'block';
+            
+            // Clear input
+            input.value = '';
+            input.disabled = true;
+            document.getElementById('chatBtn').disabled = true;
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'chat',
+                        message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const aiMsg = document.createElement('div');
+                    aiMsg.style.cssText = 'margin-bottom: 8px; padding: 8px; background: #e3f2fd; color: #0066CC; border-radius: 6px;';
+                    aiMsg.innerHTML = `<strong>AI:</strong> ${data.reply}<br><small style="color: #666; margin-top: 4px; display: block;">${data.feedback}</small>`;
+                    messages.appendChild(aiMsg);
+                }
+            } catch (err) {
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = 'margin-bottom: 8px; padding: 8px; background: #ffebee; color: #c62828; border-radius: 6px;';
+                errorMsg.textContent = 'Error: ' + err.message;
+                messages.appendChild(errorMsg);
+            }
+            
+            input.disabled = false;
+            document.getElementById('chatBtn').disabled = false;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function checkListening(inputId, correct) {
+            const input = document.getElementById(inputId);
+            const feedback = document.getElementById('f' + inputId);
+            const userAnswer = input.value.toLowerCase().trim();
+            
+            if (userAnswer.includes(correct.toLowerCase())) {
+                feedback.textContent = '✓ Great! You understood correctly.';
+                feedback.classList.add('success', 'show');
+                input.style.borderColor = '#4caf50';
+            } else {
+                feedback.textContent = `Hint: "${correct}"`;
+                feedback.classList.add('error', 'show');
+                input.style.borderColor = '#f44336';
+            }
+            
+            setTimeout(() => {
+                feedback.classList.remove('show');
+                input.style.borderColor = '#ddd';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
