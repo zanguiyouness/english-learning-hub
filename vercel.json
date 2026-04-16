@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "vercel/api/mistral.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/mistral",
+      "dest": "vercel/api/mistral.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "app.html"
+    }
+  ]
+}
